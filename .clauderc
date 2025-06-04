@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "personal-assistant": {
+      "command": "/Users/jaarmstrong/nomadicj/personal-mcp/venv/bin/python",
+      "args": ["-m", "src.server"],
+      "cwd": "/Users/jaarmstrong/nomadicj/personal-mcp"
+    }
+  }
+}

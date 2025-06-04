@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  team-management:
+    build: .
+    container_name: team-management-mcp
+    user: "${UID:-1000}:${GID:-1000}"  # Run as host user to fix file permissions
+    volumes:
+      # Mount data directory for human-readable markdown files
+      - ./data:/app/data:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MCP_SERVER_NAME=team-management
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import src.models; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+volumes:
+  # Named volume for easier backup
+  team_data:
+    driver: local
