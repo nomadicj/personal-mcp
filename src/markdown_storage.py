@@ -516,26 +516,98 @@ class MarkdownStorage:
         filename = f"{datetime.now().strftime('%Y-%m-%d')}-{self._sanitize_filename(transcript.title or 'transcript')}.md"
         file_path = self.transcripts_dir / filename
         
+        # Handle both old and new transcript models
+        created_at = getattr(transcript, 'created_at', transcript.date)
+        
         content = f"""# {transcript.title or 'Call Transcript'}
 
-**Date:** {transcript.created_at.strftime('%Y-%m-%d %H:%M')}
+**Date:** {created_at.strftime('%Y-%m-%d %H:%M')}
 **Participants:** {', '.join(transcript.participants) if transcript.participants else 'Not specified'}
 
 ## Transcript Content
 
 {transcript.content}
 
-## Extracted Items
+## Analysis Results
 
 """
         
         if hasattr(transcript, 'extracted_items') and transcript.extracted_items:
-            for item in transcript.extracted_items:
-                content += f"- **{item.get('type', 'item').title()}:** {item.get('content', '')}\n"
-                if item.get('participants'):
-                    content += f"  - Participants: {', '.join(item['participants'])}\n"
+            analysis = transcript.extracted_items
+            
+            # Call Briefing
+            if 'briefing' in analysis:
+                briefing = analysis['briefing']
+                content += f"""### Call Briefing
+- **Duration Estimate:** {briefing.get('duration_estimate', 'Unknown')}
+- **Sentiment:** {briefing.get('sentiment', 'Unknown')}
+- **Key Topics:** {', '.join(briefing.get('key_topics', []))}
+- **Summary:** {briefing.get('summary', '')}
+
+"""
+            
+            # Manager Actions
+            if 'manager_actions' in analysis and analysis['manager_actions']:
+                content += "### Your Action Items\n"
+                for action in analysis['manager_actions']:
+                    content += f"- {action.get('content', '')}\n"
+                content += "\n"
+            
+            # Participant Actions  
+            if 'participant_actions' in analysis and analysis['participant_actions']:
+                content += "### Team Member Action Items\n"
+                for action in analysis['participant_actions']:
+                    assignee = action.get('assignee', 'Unassigned')
+                    content += f"- **{assignee}:** {action.get('content', '')}\n"
+                content += "\n"
+            
+            # Concerns
+            if 'concerns' in analysis and analysis['concerns']:
+                content += "### Concerns Raised\n"
+                for concern in analysis['concerns']:
+                    severity = concern.get('severity', 'Unknown')
+                    content += f"- **{severity} Priority:** {concern.get('content', '')}\n"
+                content += "\n"
+            
+            # Decisions
+            if 'decisions' in analysis and analysis['decisions']:
+                content += "### Decisions Made\n"
+                for decision in analysis['decisions']:
+                    content += f"- {decision.get('content', '')}\n"
+                content += "\n"
+            
+            # Management Coaching
+            if 'management_coaching' in analysis:
+                coaching = analysis['management_coaching']
+                content += "### Leadership Coaching (HBS Principles)\n\n"
+                
+                # Communication Analysis
+                if 'communication_analysis' in coaching:
+                    comm = coaching['communication_analysis']
+                    content += f"**Communication Analysis:**\n"
+                    content += f"- Participation Balance: {comm.get('participation_balance', 'Unknown')}\n"
+                    content += f"- Questions Asked: {comm.get('questions_asked', 0)}\n"
+                    content += f"- Total Exchanges: {comm.get('total_exchanges', 0)}\n\n"
+                
+                # Leadership Assessment
+                if 'leadership_assessment' in coaching:
+                    leadership = coaching['leadership_assessment']
+                    content += "**Leadership Skills Assessment:**\n"
+                    for skill, assessment in leadership.items():
+                        skill_name = skill.replace('_', ' ').title()
+                        level = assessment.get('level', 'Unknown')
+                        content += f"- {skill_name}: {level}\n"
+                    content += "\n"
+                
+                # Recommendations
+                if 'recommendations' in coaching and coaching['recommendations']:
+                    content += "**Specific Recommendations:**\n"
+                    for rec in coaching['recommendations']:
+                        content += f"- **{rec.get('area', 'General')}:** {rec.get('recommendation', '')}\n"
+                        content += f"  - *HBS Principle: {rec.get('hbs_principle', 'General Leadership')}*\n"
+                    content += "\n"
         else:
-            content += "No items extracted yet.\n"
+            content += "No analysis completed yet.\n"
         
         content += f"\n---\n*Processed: {transcript.processed}*\n*ID: {transcript.id}*\n"
         

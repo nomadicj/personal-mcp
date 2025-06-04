@@ -72,5 +72,6 @@ class CallTranscript(BaseModel):
     participants: List[str] = Field(default_factory=list)
     content: str
     date: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.now)
     extracted_items: List[Dict[str, Any]] = Field(default_factory=list)
     processed: bool = False
